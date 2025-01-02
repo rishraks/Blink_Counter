@@ -4,27 +4,22 @@ import math
 import cvzone
 from cvzone.PlotModule import LivePlot
 
+# Web Cam
 cap = cv2.VideoCapture(0)
 cap.set(3,640)
 cap.set(4,360)
 
-mp_detect_face = mp.solutions.face_detection
+# Face Mesh Detection
 mp_face_mesh = mp.solutions.face_mesh
-mp_drawing = mp.solutions.drawing_utils
-mp_drawing_style = mp.solutions.drawing_styles
-
 face = mp_face_mesh.FaceMesh(max_num_faces = 1, min_detection_confidence =0.5, min_tracking_confidence = 0.5, refine_landmarks = True)
 
+# Landmarks for Left Eye
 left_eye_ids = set(sum(mp_face_mesh.FACEMESH_LEFT_EYE, ())) 
-print("Left Eye Landmark IDs:", left_eye_ids)
 
+# Liveplot
 plot_y = LivePlot(640,360,[0.09,0.35])
 
-# Upper = 386
-# Lower = 374
-# outer = 362
-# Inner = 263
-
+# Detection Parameters
 threshold_close = 0.2
 threshold_open = 0.29
 is_blinking = False
@@ -47,12 +42,14 @@ while True:
                     lms = facelms.landmark[landmark]
                     x,y = int(lms.x*w), int(lms.y*h)
                     cv2.circle(frame, (x,y),1,(0,0,255),-1)
-                    
+                
+                # Initialized upper,lower,inner and outer landmarks
                 upper_id = 386
                 lower_id = 374
                 inner_id = 263
                 outer_id = 362
                 
+                # Landmarks Positions
                 upper_point = facelms.landmark[upper_id]
                 upper_pos = int(upper_point.x*w), int(upper_point.y*h)
                 
@@ -64,10 +61,12 @@ while True:
                 
                 outer_point = facelms.landmark[outer_id]
                 outer_pos = int(outer_point.x*w), int(outer_point.y*h)
-        
+
+                # Calculating Vertical and Horizontal Distances
                 vertical_distance = math.sqrt((upper_pos[0]-lower_pos[0])**2+(upper_pos[1]-lower_pos[1])**2)
                 horizontal_distance = math.sqrt((outer_pos[0]-inner_pos[0])**2+(outer_pos[1]-inner_pos[1])**2)
                 
+                # Normalized Value
                 normalized_distance = (vertical_distance/horizontal_distance)
                 
                 if normalized_distance<threshold_close and not is_blinking:
@@ -79,10 +78,9 @@ while True:
                 cv2.line(frame, upper_pos,lower_pos,(0,200,0),1)
                 cv2.line(frame, inner_pos,outer_pos,(200,200,0),1)
                 
-                
+                # LivePlot and Stacking both the frames Horizontally
                 plot = plot_y.update(normalized_distance)
                 stack_frame = cvzone.stackImages([frame,plot],2,1)
-                
                 
         cv2.putText(stack_frame, f"Blink Count: {count}",(50,50),cv2.FONT_HERSHEY_COMPLEX_SMALL,1,(0,0,255),2)
         cv2.imshow("Frame",stack_frame)
